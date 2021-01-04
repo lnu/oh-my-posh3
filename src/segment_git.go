@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	git2go "github.com/libgit2/git2go/v28"
 )
 
 type gitRepo struct {
@@ -14,8 +16,9 @@ type gitRepo struct {
 	behind     int
 	HEAD       string
 	upstream   string
-	stashCount string
+	stashCount int
 	root       string
+	repo       *git2go.Repository
 }
 
 type gitStatus struct {
@@ -127,7 +130,21 @@ func (g *git) enabled() bool {
 }
 
 func (g *git) string() string {
-	g.setGitStatus()
+	// initialize repo
+	g.repo = &gitRepo{}
+	// find repo root
+	g.repo.root, _ = git2go.Discover(g.env.getcwd(), false, nil)
+	// open repo
+	var err error
+	g.repo.repo, err = git2go.OpenRepository(g.repo.root)
+	if err != nil {
+		return ""
+	}
+	// if bare repo, no status
+	if !g.repo.repo.IsBare() {
+		g.setGitStatus()
+	}
+
 	if g.props.getBool(StatusColorsEnabled, false) {
 		g.SetStatusColor()
 	}
@@ -163,8 +180,8 @@ func (g *git) string() string {
 	if g.repo.working.changed {
 		fmt.Fprint(buffer, g.getStatusDetailString(g.repo.working, WorkingColor, LocalWorkingIcon, " \uF044"))
 	}
-	if g.props.getBool(DisplayStashCount, false) && g.repo.stashCount != "" {
-		fmt.Fprintf(buffer, " %s%s", g.props.getString(StashCountIcon, "\uF692 "), g.repo.stashCount)
+	if g.props.getBool(DisplayStashCount, false) && g.repo.stashCount != 0 {
+		fmt.Fprintf(buffer, " %s%d", g.props.getString(StashCountIcon, "\uF692 "), g.repo.stashCount)
 	}
 	return buffer.String()
 }
@@ -199,8 +216,6 @@ func (g *git) getUpstreamSymbol() string {
 }
 
 func (g *git) setGitStatus() {
-	g.repo = &gitRepo{}
-	g.repo.root = g.getGitCommandOutput("rev-parse", "--show-toplevel")
 	output := g.getGitCommandOutput("status", "-unormal", "--short", "--branch")
 	splittedOutput := strings.Split(output, "\n")
 	g.repo.working = g.parseGitStats(splittedOutput, true)
@@ -349,8 +364,13 @@ func (g *git) parseGitStats(output []string, working bool) *gitStatus {
 	return &status
 }
 
-func (g *git) getStashContext() string {
-	return g.getGitCommandOutput("rev-list", "--walk-reflogs", "--count", "refs/stash")
+func (g *git) getStashContext() int {
+	i := 0
+	_ = g.repo.repo.Stashes.Foreach(func(index int, msg string, id *git2go.Oid) error {
+		i++
+		return nil
+	})
+	return i
 }
 
 func (g *git) parseGitStatusInfo(branchInfo string) map[string]string {
