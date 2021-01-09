@@ -219,6 +219,7 @@ func (e *engine) debug() {
 		segmentName := fmt.Sprintf("%s(%t)", segment.name, segment.enabled)
 		e.renderer.print(fmt.Sprintf("%-*s - %3d ms - %s\n", largestSegmentNameLength, segmentName, duration, segment.stringValue))
 	}
+
 	fmt.Print(e.renderer.string())
 }
 

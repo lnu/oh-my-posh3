@@ -421,25 +421,25 @@ func bootstrapUpstreamTest(upstream string) *git {
 
 func TestGetUpstreamSymbolGitHub(t *testing.T) {
 	g := bootstrapUpstreamTest("github.com/test")
-	upstreamIcon := g.getUpstreamSymbol()
+	upstreamIcon := g.getUpstreamSymbol("github.com/test")
 	assert.Equal(t, "GH", upstreamIcon)
 }
 
 func TestGetUpstreamSymbolGitLab(t *testing.T) {
 	g := bootstrapUpstreamTest("gitlab.com/test")
-	upstreamIcon := g.getUpstreamSymbol()
+	upstreamIcon := g.getUpstreamSymbol("gitlab.com/test")
 	assert.Equal(t, "GL", upstreamIcon)
 }
 
 func TestGetUpstreamSymbolBitBucket(t *testing.T) {
 	g := bootstrapUpstreamTest("bitbucket.org/test")
-	upstreamIcon := g.getUpstreamSymbol()
+	upstreamIcon := g.getUpstreamSymbol("bitbucket.org/test")
 	assert.Equal(t, "BB", upstreamIcon)
 }
 
 func TestGetUpstreamSymbolGit(t *testing.T) {
 	g := bootstrapUpstreamTest("gitstash.com/test")
-	upstreamIcon := g.getUpstreamSymbol()
+	upstreamIcon := g.getUpstreamSymbol("gitstash.com/test")
 	assert.Equal(t, "G", upstreamIcon)
 }
 

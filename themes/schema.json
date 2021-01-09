@@ -612,7 +612,13 @@
                     "$ref": "#/definitions/color"
                   },
                   "behind_color": { "$ref": "#/definitions/color" },
-                  "ahead_color": { "$ref": "#/definitions/color" }
+                  "ahead_color": { "$ref": "#/definitions/color" },
+                  "enable_hyperlink": {
+                    "type": "string",
+                    "title": "Display an hyperlink for the current branch",
+                    "description": "https://ohmyposh.dev/docs/configure#console-title-template",
+                    "default": false
+                  }
                 }
               }
             }

@@ -3,8 +3,21 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
+)
+
+var (
+	// Map for git service providers
+	// generate url to commits list of the current branch
+	gitProvidersMap map[string]string = map[string]string{
+		"github.com":       "%s/commits/%s",
+		"azure.com":        "%s/commits?itemVersion=GB%s",
+		"visualstudio.com": "%s/commits?itemVersion=GB%s",
+		"gitlab.com":       "%s/-/commits/%s",
+		"bitbucket.org":    "%s/commits/branch/%s",
+	}
 )
 
 type gitRepo struct {
@@ -13,9 +26,11 @@ type gitRepo struct {
 	ahead      int
 	behind     int
 	HEAD       string
+	HEADPRETTY string
 	upstream   string
 	stashCount int
 	gitFolder  string
+	url        string
 }
 
 type gitStatus struct {
@@ -147,11 +162,20 @@ func (g *git) string() string {
 		g.SetStatusColor()
 	}
 	buffer := new(bytes.Buffer)
+
+	// url
+	upstream := replaceAllString("/.*", g.repo.upstream, "")
+	g.repo.url = g.getGitCommandOutput("remote", "get-url", upstream)
+
 	// branchName
 	if g.repo.upstream != "" && g.props.getBool(DisplayUpstreamIcon, false) {
-		fmt.Fprintf(buffer, "%s", g.getUpstreamSymbol())
+		fmt.Fprintf(buffer, "%s", g.getUpstreamSymbol(g.repo.url))
 	}
-	fmt.Fprintf(buffer, "%s", g.repo.HEAD)
+
+	// default name
+	repoHEAD := g.getHEAD(g.repo)
+	fmt.Fprintf(buffer, "%s", repoHEAD)
+
 	displayStatus := g.props.getBool(DisplayStatus, true)
 	if !displayStatus {
 		return buffer.String()
@@ -198,16 +222,14 @@ func (g *git) getStatusDetailString(status *gitStatus, color, icon Property, def
 	return status.string(prefix, foregroundColor)
 }
 
-func (g *git) getUpstreamSymbol() string {
-	upstream := replaceAllString("/.*", g.repo.upstream, "")
-	url := g.getGitCommandOutput("remote", "get-url", upstream)
-	if strings.Contains(url, "github") {
+func (g *git) getUpstreamSymbol(repoURL string) string {
+	if strings.Contains(repoURL, "github") {
 		return g.props.getString(GithubIcon, "\uF408 ")
 	}
-	if strings.Contains(url, "gitlab") {
+	if strings.Contains(repoURL, "gitlab") {
 		return g.props.getString(GitlabIcon, "\uF296 ")
 	}
-	if strings.Contains(url, "bitbucket") {
+	if strings.Contains(repoURL, "bitbucket") {
 		return g.props.getString(BitbucketIcon, "\uF171 ")
 	}
 	return g.props.getString(GitIcon, "\uE5FB ")
@@ -226,7 +248,8 @@ func (g *git) setGitStatus() {
 			g.repo.upstream = status["upstream"]
 		}
 	}
-	g.repo.HEAD = g.getGitHEADContext(status["local"])
+	g.repo.HEAD = status["local"]
+	g.repo.HEADPRETTY = g.getGitHEADContext(status["local"])
 	if g.props.getBool(DisplayStashCount, false) {
 		g.repo.stashCount = g.getStashContext()
 	}
@@ -380,4 +403,32 @@ func (g *git) getStashContext() int {
 func (g *git) parseGitStatusInfo(branchInfo string) map[string]string {
 	var branchRegex = `^## (?P<local>\S+?)(\.{3}(?P<upstream>\S+?)( \[(?P<upstream_status>(ahead (?P<ahead>\d+)(, )?)?(behind (?P<behind>\d+))?(gone)?)])?)?$`
 	return findNamedRegexMatch(branchRegex, branchInfo)
+}
+
+func (g *git) getHEAD(repo *gitRepo) string {
+	if repo.upstream == "" || !g.props.getBool(EnableHyperlink, false) {
+		return repo.HEADPRETTY
+	}
+	// parse url to and strips extra info
+	baseURL, err := url.Parse(repo.url)
+	if err != nil {
+		return repo.HEADPRETTY
+	}
+	var urlTemplate string
+	// check for a match in the providers map
+	for i, val := range gitProvidersMap {
+		if strings.Contains(baseURL.Host, i) {
+			urlTemplate = val
+			break
+		}
+	}
+	// construct url(remove .git from url(github))
+	// removing extra data could be done using a regex stored in the map
+	repoURL := fmt.Sprintf("%s://%s%s", baseURL.Scheme, baseURL.Host, strings.ReplaceAll(baseURL.Path, ".git", ""))
+	if urlTemplate != "" {
+		// if provider found, open the branch
+		return fmt.Sprintf("[%s](%s)", repo.HEADPRETTY, fmt.Sprintf(urlTemplate, repoURL, repo.HEAD))
+	}
+	// if no provider found, open the base url
+	return fmt.Sprintf("[%s](%s)", repo.HEADPRETTY, repoURL)
 }

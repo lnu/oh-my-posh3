@@ -83,3 +83,7 @@ foreground/background (see `color_background`)
 foreground/background (see `color_background`)
 
 [colors]: /docs/configure#colors
+
+### Hyperlink
+
+- enable_hyperlink: `boolean` - displays an hyperlink for the repository - defaults to `false`
