@@ -14,6 +14,7 @@ type Settings struct {
 	ConsoleTitle         bool              `json:"console_title"`
 	ConsoleTitleStyle    ConsoleTitleStyle `json:"console_title_style"`
 	ConsoleTitleTemplate string            `json:"console_title_template"`
+	EnableHyperlink      bool              `json:"enable_hyperlink"`
 	Blocks               []*Block          `json:"blocks"`
 }
 
@@ -34,6 +35,8 @@ const (
 	Left BlockAlignment = "left"
 	// Right aligns right
 	Right BlockAlignment = "right"
+	// EnableHyperlink enable hyperlink
+	EnableHyperlink Property = "enable_hyperlink"
 )
 
 // Block defines a part of the prompt with optional segments
