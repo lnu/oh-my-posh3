@@ -35,3 +35,18 @@ func TestSpotifyStringStoppedSong(t *testing.T) {
 	}
 	assert.Equal(t, expected, s.string())
 }
+
+func TestSpotifyStringPlayingHyperlinkEnabled(t *testing.T) {
+	expected := "[\ue602 Candlemass - Spellbreaker](http://www.google.com/search?q=Candlemass+Spellbreaker)"
+	s := &spotify{
+		artist: "Candlemass",
+		track:  "Spellbreaker",
+		status: "playing",
+		props: &properties{
+			values: map[Property]interface{}{
+				EnableHyperlink: true,
+			},
+		},
+	}
+	assert.Equal(t, expected, s.string())
+}

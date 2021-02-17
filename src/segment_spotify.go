@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 )
 
 type spotify struct {
@@ -36,6 +37,9 @@ func (s *spotify) string() string {
 		icon = s.props.getString(PlayingIcon, "\uE602 ")
 	}
 	separator := s.props.getString(TrackSeparator, " - ")
+	if s.props.getBool(EnableHyperlink, false) {
+		return fmt.Sprintf("[%s%s%s%s](http://www.google.com/search?q=%s)", icon, s.artist, separator, s.track, url.QueryEscape(s.artist+" "+s.track))
+	}
 	return fmt.Sprintf("%s%s%s%s", icon, s.artist, separator, s.track)
 }
 
